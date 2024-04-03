@@ -1,11 +1,15 @@
 package com.cleanarchitectureexample.di
 
+import android.content.Context
+import androidx.room.Room
 import com.cleanarchitectureexample.data.remote.ApiService
 import com.cleanarchitectureexample.data.repository.PostRepositoryImplementation
+import com.cleanarchitectureexample.database.AppDatabase
 import com.cleanarchitectureexample.domain.repository.PostRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -33,5 +37,19 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun providePostsRepository(apiService: ApiService): PostRepository = PostRepositoryImplementation(apiService)
+    fun providePostsRepository(apiService: ApiService, appDatabase: AppDatabase): PostRepository =
+        PostRepositoryImplementation(apiService, appDatabase)
+
+    @Provides
+    @Singleton
+    fun provideDatabaseObject(@ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder(
+            context.applicationContext,
+            AppDatabase::class.java,
+            "posts_db"
+        )
+            .fallbackToDestructiveMigration()
+            .build()
+    }
+
 }

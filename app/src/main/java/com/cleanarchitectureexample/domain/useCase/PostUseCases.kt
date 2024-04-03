@@ -29,4 +29,16 @@ class PostUseCases @Inject constructor(private val postRepository: PostRepositor
         }
         emit(Resource.failed(error!!))
     }.flowOn(Dispatchers.IO)
+
+    suspend fun getSavedPosts(): Flow<Resource<List<PostResponse>>> =
+        flow {
+            emit(Resource.loading())
+            emit(Resource.success(postRepository.getSavedPosts()))
+        }.catch {
+            emit(Resource.failed(it.message!!))
+        }.flowOn(Dispatchers.IO)
+
+    suspend fun savePost(post: PostResponse) = postRepository.savePost(post)
+
+
 }

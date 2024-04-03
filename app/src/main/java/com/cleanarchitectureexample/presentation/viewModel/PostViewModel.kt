@@ -17,11 +17,29 @@ class PostViewModel @Inject constructor(private val postUseCases: PostUseCases) 
     private var _response: MutableStateFlow<Resource<PostResponse>?> = MutableStateFlow(null)
     var response: StateFlow<Resource<PostResponse>?> = _response
 
+    private var _responseList: MutableStateFlow<Resource<List<PostResponse>>?> =
+        MutableStateFlow(null)
+    var responseList: StateFlow<Resource<List<PostResponse>>?> = _responseList
+
     fun getPosts(id: Int) {
         viewModelScope.launch {
             postUseCases.getPosts(id).collect {
                 _response.value = it
             }
+        }
+    }
+
+    fun getSavedPosts() {
+        viewModelScope.launch {
+            postUseCases.getSavedPosts().collect {
+                _responseList.value = it
+            }
+        }
+    }
+
+    fun savePost(post: PostResponse) {
+        viewModelScope.launch {
+            postUseCases.savePost(post)
         }
     }
 }

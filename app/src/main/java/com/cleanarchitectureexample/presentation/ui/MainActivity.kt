@@ -1,25 +1,28 @@
 package com.cleanarchitectureexample.presentation.ui
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
-import com.cleanarchitectureexample.R
 import com.cleanarchitectureexample.databinding.ActivityMainBinding
+import com.cleanarchitectureexample.domain.model.PostResponse
 import com.cleanarchitectureexample.presentation.viewModel.PostViewModel
 import com.cleanarchitectureexample.utils.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
-    lateinit var activityMainBinding: ActivityMainBinding
+    private lateinit var activityMainBinding: ActivityMainBinding
     private val postViewModel: PostViewModel by viewModels()
+    private lateinit var post: PostResponse
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,17 +35,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun clickEvents() {
-        activityMainBinding.go.setOnClickListener {
-            if (activityMainBinding.text.text.toString().isEmpty()) {
-                activityMainBinding.text.error = "Please enter Id"
-                activityMainBinding.text.requestFocus()
+
+        activityMainBinding.crossBtn.setOnClickListener {
+            activityMainBinding.postLayout.visibility = View.GONE
+            activityMainBinding.textView.setText("")
+        }
+
+        activityMainBinding.saveBtn.setOnClickListener {
+            lifecycleScope.launch {
+                savePost()
+            }
+        }
+        activityMainBinding.button.setOnClickListener {
+            if (activityMainBinding.textView.text.toString().isEmpty()) {
+                activityMainBinding.textView.error = "Please enter Id"
+                activityMainBinding.textView.requestFocus()
             } else {
-                val id: Int = activityMainBinding.text.text.toString().toInt()
+                val id: Int = activityMainBinding.textView.text.toString().toInt()
 
                 if (id in 1..100) {
                     getPosts(id)
                 } else {
-                    activityMainBinding.text.setText("")
+                    activityMainBinding.textView.setText("")
 
                     Toast.makeText(
                         this@MainActivity,
@@ -53,6 +67,10 @@ class MainActivity : AppCompatActivity() {
 
             }
         }
+
+        activityMainBinding.viewBtn.setOnClickListener {
+            startActivity(Intent(this@MainActivity, ViewPostsActivity::class.java))
+        }
     }
 
     private fun attachObservers() {
@@ -62,7 +80,8 @@ class MainActivity : AppCompatActivity() {
                 when (it) {
                     is Resource.Loading -> {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity, "Loading", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, "loading...", Toast.LENGTH_SHORT)
+                                .show()
                         }
                     }
 
@@ -73,10 +92,7 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     is Resource.Success -> {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity, it.data.title, Toast.LENGTH_SHORT)
-                                .show()
-                        }
+                        handleSuccess(it.data)
                     }
 
                     else -> {}
@@ -84,6 +100,31 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    private fun handleSuccess(data: PostResponse) {
+        Toast.makeText(this@MainActivity, "Success", Toast.LENGTH_SHORT).show()
+        activityMainBinding.userId.text = "UserId - ${data.userId}"
+        activityMainBinding.title.text = data.title
+        activityMainBinding.body.text = data.body
+
+        post = data
+        activityMainBinding.postLayout.visibility = View.VISIBLE
+    }
+
+    private suspend fun savePost() {
+        val def = lifecycleScope.async {
+            postViewModel.savePost(PostResponse(post.body, post.title, post.userId))
+        }
+        def.await()
+        Toast.makeText(
+            this@MainActivity,
+            "Post saved successfully",
+            Toast.LENGTH_SHORT
+        ).show()
+        activityMainBinding.postLayout.visibility = View.GONE
+        activityMainBinding.textView.setText("")
+    }
+
 
     private fun getPosts(id: Int) {
         postViewModel.getPosts(id)
