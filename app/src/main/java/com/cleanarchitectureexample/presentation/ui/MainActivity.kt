@@ -79,10 +79,7 @@ class MainActivity : AppCompatActivity() {
             postViewModel.response.collect {
                 when (it) {
                     is Resource.Loading -> {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity, "loading...", Toast.LENGTH_SHORT)
-                                .show()
-                        }
+//                        showLoad()
                     }
 
                     is Resource.Failed -> {
